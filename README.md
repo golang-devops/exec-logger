@@ -67,6 +67,10 @@ Note the added flag `-timeout-kill 5s`. This will attempt to run ping for 3000 s
 
 After 5 seconds it should automatically abort and our usual three files should be there. The `exited.json` file should again have a non-zero `ExitCode` with its error being something like "The command timed out after '5s'". The `tmp.log` will also contain a line reading `Timeout of 5s reached, now aborting` as well as `Successfully killed process with PID`.
 
+# Acknowledgments
+
+- [shirou/gopsutil](https://github.com/shirou/gopsutil) - Used for Linux to obtain process children to be killed
+
 # Contribution
 
 Pull requests are welcome.
