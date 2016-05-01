@@ -119,7 +119,30 @@ func abortProcess(stdioHandler *stdioHandler, cmd *exec.Cmd) {
 	stdioHandler.writeFileLine(fmt.Sprintf("Successfully killed process with PID %d", pid))
 }
 
+func cleanupBeforeStarting(statusHandler *execStatusHandler) error {
+	if err := os.Remove(statusHandler.aliveFilePath); err != nil {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("Cannot remove alive file '%s', error: %s", statusHandler.aliveFilePath, err.Error())
+		}
+	}
+	if err := os.Remove(statusHandler.exitedFilePath); err != nil {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("Cannot remove exited file '%s', error: %s", statusHandler.exitedFilePath, err.Error())
+		}
+	}
+	if err := os.Remove(statusHandler.mustAbortFilePath); err != nil {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("Cannot remove must-abort file '%s', error: %s", statusHandler.mustAbortFilePath, err.Error())
+		}
+	}
+	return nil
+}
+
 func runCommand(stdioHandler *stdioHandler, statusHandler *execStatusHandler, runArgs []string, stdErrIsError bool, timeoutKillDuration time.Duration) (exitCode int, returnErr error) {
+	if err := cleanupBeforeStarting(statusHandler); err != nil {
+		return -1, err
+	}
+
 	cmd := exec.Command(runArgs[0], runArgs[1:]...)
 
 	stdout, err := cmd.StdoutPipe()
