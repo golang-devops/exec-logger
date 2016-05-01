@@ -29,7 +29,7 @@ exec-logger -logfile tmp.log -task exec ping 127.0.0.1 -c 3
 There should now be three files in this temp dir, namely:
 
 - `alive.txt` - gets written out every 2 seconds to inform "external observers" that the process is alive and responding.
-- `exited.json` - gets written out when the process finished and contains the `ExitCode`, `Time` (of exit) and `Error` (if any)
+- `exited.json` - gets written out when the process finished and contains the `ExitCode`, `Error` (if any), `ExitTime` (of exit) and `Duration` (in golang native [time.Duration](https://golang.org/pkg/time/#Duration) format). These fields are contained in the `ExitStatusDto` struct
 - `tmp.log` - contains the stdout/stderr of the "wrapped command" which is that of the `ping` command in the above example
 
 Note that the `tmp.log` file added time-stamp prefixes to each line received from `ping`. It also has additional information like the last line that should read **"Command exited with code 0"**.

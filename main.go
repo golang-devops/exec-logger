@@ -45,7 +45,8 @@ func doExecCommand() {
 	stdioLogger := NewStdioLogger()
 	logFilePath := *logFileFlag
 	args := flag.Args()
-	exitCode, err := handleExecCommand(stdioLogger, logFilePath, *stdErrIsError, *timeoutKillDuration, args)
+	execer := NewCommandExecer(stdioLogger, logFilePath, *stdErrIsError, *timeoutKillDuration, args)
+	exitCode, err := execer.Run()
 
 	fmt.Printf("exit code was %d\n", exitCode)
 

@@ -8,8 +8,9 @@ import (
 
 type ExitStatusDto struct {
 	ExitCode int
-	Time     time.Time
 	Error    string
+	ExitTime time.Time
+	Duration string
 }
 
 func (e *ExitStatusDto) HasError() bool {
