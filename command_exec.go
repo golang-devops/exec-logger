@@ -206,6 +206,19 @@ func runCommand(stdioHandler *stdioHandler, statusHandler *execStatusHandler, ru
 	return 0, nil
 }
 
+func joinCommandLine(runArgs []string) string {
+	formatted := []string{}
+	for _, ra := range runArgs {
+		trimmed := strings.Trim(ra, " '\"")
+		if strings.Contains(trimmed, " ") {
+			formatted = append(formatted, "\""+trimmed+"\"")
+		} else {
+			formatted = append(formatted, trimmed)
+		}
+	}
+	return strings.Join(formatted, " ")
+}
+
 func handleExecCommand(runnerLogger loggers.LoggerStdIO, logFilePath string, stdErrIsError bool, timeoutKillDuration time.Duration, runArgs []string) (exitCode int, returnErr error) {
 	err := os.Remove(logFilePath)
 	if err != nil && !os.IsNotExist(err) {
@@ -228,6 +241,7 @@ func handleExecCommand(runnerLogger loggers.LoggerStdIO, logFilePath string, std
 	mustAbortFilePath := exec_logger_constants.MUST_ABORT_FILE_NAME
 	statusHandler := &execStatusHandler{aliveFilePath: aliveFilePath, exitedFilePath: exitedFilePath, mustAbortFilePath: mustAbortFilePath}
 
+	h.writeFileLine(fmt.Sprintf("Calling commandline: %s", joinCommandLine(runArgs)))
 	exitCode, err = runCommand(h, statusHandler, runArgs, stdErrIsError, timeoutKillDuration)
 
 	exitCodeMsg := fmt.Sprintf("Command exited with code %d", exitCode)
