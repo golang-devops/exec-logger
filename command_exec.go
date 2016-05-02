@@ -104,6 +104,8 @@ func (c *commandExecer) runCommand() (exitCode int, returnErr error) {
 		//do not want to exit due to this error
 	}
 
+	c.stdioHandler.writeFileLine(fmt.Sprintf("Process started with PID %d", cmd.Process.Pid))
+
 	go func(sh *execStatusHandler) {
 		for {
 			sh.WriteAlive()
