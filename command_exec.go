@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -13,15 +14,17 @@ import (
 	"github.com/golang-devops/exec-logger/exec_logger_constants"
 )
 
-func NewCommandExecer(logger loggers.LoggerStdIO, logFilePath string, stdErrIsError bool, timeoutKillDuration time.Duration, runArgs []string) *commandExecer {
-	aliveFilePath := exec_logger_constants.ALIVE_FILE_NAME
-	exitedFilePath := exec_logger_constants.EXITED_FILE_NAME
-	mustAbortFilePath := exec_logger_constants.MUST_ABORT_FILE_NAME
-	statusHandler := &execStatusHandler{aliveFilePath: aliveFilePath, exitedFilePath: exitedFilePath, mustAbortFilePath: mustAbortFilePath}
+func NewCommandExecer(logger loggers.LoggerStdIO, stdErrIsError bool, timeoutKillDuration time.Duration, runArgs []string) *commandExecer {
+	statusHandler := &execStatusHandler{
+		localContextFilePath: exec_logger_constants.LOCAL_CONTEXT_FILE_NAME,
+		aliveFilePath:        exec_logger_constants.ALIVE_FILE_NAME,
+		exitedFilePath:       exec_logger_constants.EXITED_FILE_NAME,
+		mustAbortFilePath:    exec_logger_constants.MUST_ABORT_FILE_NAME,
+	}
 
 	return &commandExecer{
 		logger:              logger,
-		logFilePath:         logFilePath,
+		logFilePath:         exec_logger_constants.LOG_FILE_NAME,
 		stdErrIsError:       stdErrIsError,
 		timeoutKillDuration: timeoutKillDuration,
 		runArgs:             runArgs,
@@ -93,6 +96,12 @@ func (c *commandExecer) runCommand() (exitCode int, returnErr error) {
 	err = cmd.Start()
 	if err != nil {
 		return -1, err
+	}
+
+	err = c.statusHandler.WriteLocalContextFile()
+	if err != nil {
+		c.stdioHandler.writeErrorLine(fmt.Sprintf("Cannot write local context, error: %s", err.Error()))
+		//do not want to exit due to this error
 	}
 
 	go func(sh *execStatusHandler) {
@@ -168,12 +177,17 @@ func (c *commandExecer) runCommand() (exitCode int, returnErr error) {
 func (c *commandExecer) Run() (exitCode int, returnErr error) {
 	err := os.Remove(c.logFilePath)
 	if err != nil && !os.IsNotExist(err) {
-		return -1, err
+		return -1, fmt.Errorf("Failure to remove log file, error: %s", err.Error())
+	}
+
+	parentDir := filepath.Dir(c.logFilePath)
+	if err := os.MkdirAll(parentDir, 0755); err != nil {
+		return -1, fmt.Errorf("Unable to create parent dir '%s' of log file, error: %s", parentDir, err.Error())
 	}
 
 	logFile, err := os.OpenFile(c.logFilePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0655)
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("Failure to open log file '%s' for writing, error; %s", c.logFilePath, err.Error())
 	}
 	defer logFile.Close()
 
@@ -184,6 +198,7 @@ func (c *commandExecer) Run() (exitCode int, returnErr error) {
 
 	startTime := time.Now()
 
+	c.stdioHandler.writeFileLine(fmt.Sprintf("Exec-logger version %s", Version))
 	c.stdioHandler.writeFileLine(fmt.Sprintf("Calling commandline: %s", joinCommandLine(c.runArgs)))
 	exitCode, err = c.runCommand()
 

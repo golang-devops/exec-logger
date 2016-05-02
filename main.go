@@ -10,9 +10,12 @@ import (
 )
 
 var (
+	Version = "0.0.0.2"
+)
+
+var (
 	taskFlag               = flag.String("task", "", "The task to run ("+strings.Join(getTaskNamesForFlagHelp(), ", ")+")")
 	stdErrIsError          = flag.Bool("stderr-is-error", false, "If any stderr line is printed we will exit with non-zero exit code")
-	logFileFlag            = flag.String("logfile", "", "The path to the log file")
 	timeoutKillDuration    = flag.Duration("timeout-kill", 0, "The timeout after which to auto-kill the running process")
 	parseErrorPatternsFlag = flag.String("parse_patterns", "", `Additional error patterns. Split multiple with `+splitParsePatternString+`, for example (without quotes). 'ERROR: (.*)'`+splitParsePatternString+`'MYERROR: (.*)'`)
 )
@@ -37,15 +40,9 @@ func getTaskNamesForFlagHelp() (names []string) {
 }
 
 func doExecCommand() {
-	if len(*logFileFlag) == 0 {
-		flag.Usage()
-		os.Exit(2)
-	}
-
 	stdioLogger := NewStdioLogger()
-	logFilePath := *logFileFlag
 	args := flag.Args()
-	execer := NewCommandExecer(stdioLogger, logFilePath, *stdErrIsError, *timeoutKillDuration, args)
+	execer := NewCommandExecer(stdioLogger, *stdErrIsError, *timeoutKillDuration, args)
 	exitCode, err := execer.Run()
 
 	fmt.Printf("exit code was %d\n", exitCode)
@@ -63,10 +60,6 @@ func doExecCommand() {
 }
 
 func doParseLogToStdioCommand() {
-	if len(*logFileFlag) == 0 {
-		flag.Usage()
-		os.Exit(2)
-	}
 	stdioLogger := NewStdioLogger()
 
 	additionalErrorPatterns = []*regexp.Regexp{}
@@ -80,14 +73,15 @@ func doParseLogToStdioCommand() {
 		}
 	}
 
-	logFilePath := *logFileFlag
-	err := handleParseLogToStdioCommand(stdioLogger, logFilePath)
+	err := handleParseLogToStdioCommand(stdioLogger)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
 func main() {
+	fmt.Println(fmt.Sprintf("Running version %s", Version))
+
 	flag.Parse()
 
 	if len(*taskFlag) == 0 {
@@ -104,5 +98,6 @@ func main() {
 	if handler == nil {
 		log.Fatalf("Unsupported task '%s'", *taskFlag)
 	}
+
 	handler()
 }

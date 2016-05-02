@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	"github.com/go-zero-boilerplate/loggers"
+	"github.com/golang-devops/exec-logger/exec_logger_constants"
 )
 
 var (
@@ -27,8 +28,8 @@ func lineHasError(line string) bool {
 	return false
 }
 
-func handleParseLogToStdioCommand(stdioLogger loggers.LoggerStdIO, logFilePath string) error {
-	logFile, err := os.Open(logFilePath)
+func handleParseLogToStdioCommand(stdioLogger loggers.LoggerStdIO) error {
+	logFile, err := os.Open(exec_logger_constants.LOG_FILE_NAME)
 	if err != nil {
 		return err
 	}
