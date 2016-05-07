@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -54,7 +55,9 @@ func (e *execStatusHandler) writeJsonFile(filePath string, data interface{}, app
 }
 
 func (e *execStatusHandler) WriteLocalContextFile() error {
-	data := &exec_logger_dtos.LocalContextDto{}
+	data := &exec_logger_dtos.LocalContextDto{
+		NumCPU: runtime.NumCPU(),
+	}
 
 	if currentUser, err := user.Current(); err != nil {
 		data.UserName = fmt.Sprintf("ERROR: Cannot obtain UserName - error '%s'", err.Error())
