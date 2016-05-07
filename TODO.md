@@ -1,1 +1,3 @@
-Unit Tests!!
+- Unit Tests!!
+- Optimize the amount of json written to resource-usage file when we enable the flag `record-resource-usage`.
+  + This could be done by avoiding writing duplicate data to the file. For instance to split the data into "static" and "dynamic" data. For example the process tree is a bit of both. If we previously successfully wrote the process details for a specific PID and Name, most of the info would not have changed. Especially the `Name`, `Exe`, `Cmdline`

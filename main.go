@@ -10,14 +10,15 @@ import (
 )
 
 var (
-	Version = "0.0.0.2"
+	Version = "0.0.0.3"
 )
 
 var (
-	taskFlag               = flag.String("task", "", "The task to run ("+strings.Join(getTaskNamesForFlagHelp(), ", ")+")")
-	stdErrIsError          = flag.Bool("stderr-is-error", false, "If any stderr line is printed we will exit with non-zero exit code")
-	timeoutKillDuration    = flag.Duration("timeout-kill", 0, "The timeout after which to auto-kill the running process")
-	parseErrorPatternsFlag = flag.String("parse_patterns", "", `Additional error patterns. Split multiple with `+splitParsePatternString+`, for example (without quotes). 'ERROR: (.*)'`+splitParsePatternString+`'MYERROR: (.*)'`)
+	taskFlag                = flag.String("task", "", "The task to run ("+strings.Join(getTaskNamesForFlagHelp(), ", ")+")")
+	stdErrIsError           = flag.Bool("stderr-is-error", false, "If any stderr line is printed we will exit with non-zero exit code")
+	timeoutKillDuration     = flag.Duration("timeout-kill", 0, "The timeout after which to auto-kill the running process")
+	parseErrorPatternsFlag  = flag.String("parse_patterns", "", `Additional error patterns. Split multiple with `+splitParsePatternString+`, for example (without quotes). 'ERROR: (.*)'`+splitParsePatternString+`'MYERROR: (.*)'`)
+	recordResourceUsageFlag = flag.Bool("record-resource-usage", false, "Record resource usage - CPU, RAM, etc")
 )
 
 var (
@@ -42,7 +43,7 @@ func getTaskNamesForFlagHelp() (names []string) {
 func doExecCommand() {
 	stdioLogger := NewStdioLogger()
 	args := flag.Args()
-	execer := NewCommandExecer(stdioLogger, *stdErrIsError, *timeoutKillDuration, args)
+	execer := NewCommandExecer(stdioLogger, *stdErrIsError, *timeoutKillDuration, *recordResourceUsageFlag, args)
 	exitCode, err := execer.Run()
 
 	fmt.Printf("exit code was %d\n", exitCode)

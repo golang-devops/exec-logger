@@ -12,14 +12,16 @@ import (
 	"github.com/go-zero-boilerplate/loggers"
 
 	"github.com/golang-devops/exec-logger/exec_logger_constants"
+	"github.com/golang-devops/exec-logger/sleep_durations"
 )
 
-func NewCommandExecer(logger loggers.LoggerStdIO, stdErrIsError bool, timeoutKillDuration time.Duration, runArgs []string) *commandExecer {
+func NewCommandExecer(logger loggers.LoggerStdIO, stdErrIsError bool, timeoutKillDuration time.Duration, recordResourceUsage bool, runArgs []string) *commandExecer {
 	statusHandler := &execStatusHandler{
-		localContextFilePath: exec_logger_constants.LOCAL_CONTEXT_FILE_NAME,
-		aliveFilePath:        exec_logger_constants.ALIVE_FILE_NAME,
-		exitedFilePath:       exec_logger_constants.EXITED_FILE_NAME,
-		mustAbortFilePath:    exec_logger_constants.MUST_ABORT_FILE_NAME,
+		localContextFilePath:        exec_logger_constants.LOCAL_CONTEXT_FILE_NAME,
+		aliveFilePath:               exec_logger_constants.ALIVE_FILE_NAME,
+		exitedFilePath:              exec_logger_constants.EXITED_FILE_NAME,
+		mustAbortFilePath:           exec_logger_constants.MUST_ABORT_FILE_NAME,
+		recordResourceUsageFilePath: exec_logger_constants.RECORD_RESOURCE_USAGE_FILE_NAME,
 	}
 
 	return &commandExecer{
@@ -27,6 +29,7 @@ func NewCommandExecer(logger loggers.LoggerStdIO, stdErrIsError bool, timeoutKil
 		logFilePath:         exec_logger_constants.LOG_FILE_NAME,
 		stdErrIsError:       stdErrIsError,
 		timeoutKillDuration: timeoutKillDuration,
+		recordResourceUsage: recordResourceUsage,
 		runArgs:             runArgs,
 		statusHandler:       statusHandler,
 		stdioHandler:        nil, //Set inside `Run` method
@@ -38,6 +41,7 @@ type commandExecer struct {
 	logFilePath         string
 	stdErrIsError       bool
 	timeoutKillDuration time.Duration
+	recordResourceUsage bool
 	runArgs             []string
 	statusHandler       *execStatusHandler
 	stdioHandler        *stdioHandler
@@ -74,6 +78,11 @@ func (c *commandExecer) cleanupBeforeStarting() error {
 			return fmt.Errorf("Cannot remove must-abort file '%s', error: %s", c.statusHandler.mustAbortFilePath, err.Error())
 		}
 	}
+	if err := os.Remove(c.statusHandler.recordResourceUsageFilePath); err != nil {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("Cannot remove resource-usage file '%s', error: %s", c.statusHandler.recordResourceUsageFilePath, err.Error())
+		}
+	}
 	return nil
 }
 
@@ -108,10 +117,34 @@ func (c *commandExecer) runCommand() (exitCode int, returnErr error) {
 
 	go func(sh *execStatusHandler) {
 		for {
-			sh.WriteAlive()
+			if tmpErr := sh.WriteAlive(); tmpErr != nil {
+				c.stdioHandler.writeErrorLine(fmt.Sprintf("Cannot write alive file, error: %s", tmpErr.Error()))
+			}
 			time.Sleep(2 * time.Second)
 		}
 	}(c.statusHandler)
+
+	procID := cmd.Process.Pid
+	if c.recordResourceUsage {
+		c.stdioHandler.writeFileLine("Starting to record resource usage")
+		go func(sh *execStatusHandler) {
+			iterationsPerDuration := 10
+			durationList := []time.Duration{
+				500 * time.Millisecond,
+				2 * time.Second,
+				10 * time.Second,
+				30 * time.Second,
+			}
+			durationIncreaser := sleep_durations.New(iterationsPerDuration, durationList)
+
+			for {
+				if tmpErr := sh.WriteResourceUsage(procID); tmpErr != nil {
+					c.stdioHandler.writeErrorLine(fmt.Sprintf("Cannot write resource-usage file, error: %s", tmpErr.Error()))
+				}
+				time.Sleep(durationIncreaser.Next())
+			}
+		}(c.statusHandler)
+	}
 
 	go func(sh *execStatusHandler) {
 		for {
