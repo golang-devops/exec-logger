@@ -16,6 +16,16 @@ type ResourceUsageDto struct {
 	ProcessTree            *process_tree.ProcessTree
 }
 
+//GetSummedProcessesResourceUsage will just sum the values of all entries and return a single ProcessResourceUsage
+func (r *ResourceUsageDto) GetSummedProcessesResourceUsage() *ProcessResourceUsage {
+	p := &ProcessResourceUsage{}
+	for _, r := range r.ProcessesResourceUsage {
+		p.MemoryKB += r.MemoryKB
+		p.CPUSeconds += r.CPUSeconds
+	}
+	return p
+}
+
 //ProcessResourceUsage contains resource usage for a single process
 type ProcessResourceUsage struct {
 	Pid        int
