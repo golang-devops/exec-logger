@@ -10,10 +10,11 @@ import (
 )
 
 var (
-	Version = "0.0.0.3"
+	Version = "0.0.0.4"
 )
 
 var (
+	versionFlag             = flag.Bool("version", false, "Print the version and exit")
 	taskFlag                = flag.String("task", "", "The task to run ("+strings.Join(getTaskNamesForFlagHelp(), ", ")+")")
 	stdErrIsError           = flag.Bool("stderr-is-error", false, "If any stderr line is printed we will exit with non-zero exit code")
 	timeoutKillDuration     = flag.Duration("timeout-kill", 0, "The timeout after which to auto-kill the running process")
@@ -81,9 +82,14 @@ func doParseLogToStdioCommand() {
 }
 
 func main() {
-	fmt.Println(fmt.Sprintf("Running version %s", Version))
-
 	flag.Parse()
+
+	if *versionFlag {
+		fmt.Println(Version)
+		os.Exit(0)
+	}
+
+	fmt.Println(fmt.Sprintf("Running version %s", Version))
 
 	if len(*taskFlag) == 0 {
 		flag.Usage()
